@@ -10,7 +10,7 @@ DATABASE_URL ?= postgres://postgres:postgres@localhost:5432/workout_tracker?sslm
 
 .DEFAULT_GOAL := help
 
-.PHONY: help run build test test-cover test-integration fmt fmt-check lint check tidy swagger clean env install-hooks docker-up docker-up-db docker-down docker-logs migrate-up migrate-down migrate-force seed seed-docker
+.PHONY: help run build test test-cover test-integration fmt fmt-check lint check tidy swagger clean env install-hooks docker-up docker-rebuild docker-up-db docker-down docker-logs migrate-up migrate-down migrate-force seed seed-docker
 
 help: ## Показать список доступных make-команд
 	@echo "Доступные команды:"
@@ -62,10 +62,13 @@ install-hooks: ## Установить git hooks из scripts/git-hooks
 	@echo "Git hook pre-push установлен"
 
 docker-up: ## Собрать и запустить API вместе с PostgreSQL
-	docker compose up --build
+	docker compose up -d --build
 
 docker-up-db: ## Запустить только PostgreSQL в Docker
 	docker compose up -d postgres
+
+docker-rebuild: ## Пересобрать Docker-образ приложения
+	docker compose build api
 
 docker-down: ## Остановить контейнеры Docker Compose
 	docker compose down
