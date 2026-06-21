@@ -7,7 +7,6 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
@@ -22,11 +21,11 @@ func TestCreateExercise(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name       string
-		body       string
-		serviceErr error
-		wantStatus int
-		wantBody   string
+		name           string
+		body           string
+		serviceErr     error
+		wantStatus     int
+		wantValidation []ValidationErrorItem
 	}{
 		{
 			name:       "created",
@@ -39,16 +38,16 @@ func TestCreateExercise(t *testing.T) {
 			wantStatus: http.StatusBadRequest,
 		},
 		{
-			name:       "validation failed",
-			body:       `{"name":""}`,
-			wantStatus: http.StatusUnprocessableEntity,
-			wantBody:   "name is required",
+			name:           "validation failed",
+			body:           `{"name":""}`,
+			wantStatus:     http.StatusUnprocessableEntity,
+			wantValidation: []ValidationErrorItem{{Field: "name", Rule: "required", Message: "name is required"}},
 		},
 		{
-			name:       "multiple validation errors",
-			body:       `{"name":" "}`,
-			wantStatus: http.StatusUnprocessableEntity,
-			wantBody:   "name must not contain leading or trailing spaces",
+			name:           "multiple validation errors",
+			body:           `{"name":" "}`,
+			wantStatus:     http.StatusUnprocessableEntity,
+			wantValidation: []ValidationErrorItem{{Field: "name", Rule: "trimmed", Message: "name must not contain leading or trailing spaces"}},
 		},
 		{
 			name:       "unknown field",
@@ -56,10 +55,10 @@ func TestCreateExercise(t *testing.T) {
 			wantStatus: http.StatusBadRequest,
 		},
 		{
-			name:       "trimmed validation failed",
-			body:       `{"name":" Bench Press "}`,
-			wantStatus: http.StatusUnprocessableEntity,
-			wantBody:   "name must not contain leading or trailing spaces",
+			name:           "trimmed validation failed",
+			body:           `{"name":" Bench Press "}`,
+			wantStatus:     http.StatusUnprocessableEntity,
+			wantValidation: []ValidationErrorItem{{Field: "name", Rule: "trimmed", Message: "name must not contain leading or trailing spaces"}},
 		},
 		{
 			name:       "duplicate exercise",
@@ -97,7 +96,7 @@ func TestCreateExercise(t *testing.T) {
 			h.CreateExercise(rec, req)
 
 			assertStatus(t, rec.Code, tt.wantStatus)
-			assertBodyContains(t, rec.Body.String(), tt.wantBody)
+			assertValidationResponse(t, rec.Body.Bytes(), tt.wantValidation)
 		})
 	}
 }
@@ -108,11 +107,11 @@ func TestCreateExecution(t *testing.T) {
 	performedAt := "2026-06-21T10:00:00Z"
 
 	tests := []struct {
-		name       string
-		body       string
-		serviceErr error
-		wantStatus int
-		wantBody   string
+		name           string
+		body           string
+		serviceErr     error
+		wantStatus     int
+		wantValidation []ValidationErrorItem
 	}{
 		{
 			name:       "created",
@@ -128,19 +127,26 @@ func TestCreateExecution(t *testing.T) {
 			name:       "validation failed",
 			body:       `{"user_id":"","exercise_id":0}`,
 			wantStatus: http.StatusUnprocessableEntity,
-			wantBody:   "user_id is required",
+			wantValidation: []ValidationErrorItem{
+				{Field: "exercise_id", Rule: "required", Message: "exercise_id is required"},
+				{Field: "user_id", Rule: "required", Message: "user_id is required"},
+			},
 		},
 		{
 			name:       "invalid user id format",
 			body:       `{"user_id":"user 1","exercise_id":1}`,
 			wantStatus: http.StatusUnprocessableEntity,
-			wantBody:   "user_id must contain only letters, digits, dashes and underscores",
+			wantValidation: []ValidationErrorItem{
+				{Field: "user_id", Rule: "alphanumdash", Message: "user_id must contain only letters, digits, dashes and underscores"},
+			},
 		},
 		{
 			name:       "performed at in the future",
 			body:       `{"user_id":"user-1","exercise_id":1,"performed_at":"2099-01-01T00:00:00Z"}`,
 			wantStatus: http.StatusUnprocessableEntity,
-			wantBody:   "performed_at must not be in the future",
+			wantValidation: []ValidationErrorItem{
+				{Field: "performed_at", Rule: "future", Message: "performed_at must not be in the future"},
+			},
 		},
 		{
 			name:       "unknown field",
@@ -183,7 +189,7 @@ func TestCreateExecution(t *testing.T) {
 			h.CreateExecution(rec, req)
 
 			assertStatus(t, rec.Code, tt.wantStatus)
-			assertBodyContains(t, rec.Body.String(), tt.wantBody)
+			assertValidationResponse(t, rec.Body.Bytes(), tt.wantValidation)
 		})
 	}
 }
@@ -192,10 +198,10 @@ func TestGetUserStatistics(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name       string
-		serviceErr error
-		wantStatus int
-		wantBody   string
+		name           string
+		serviceErr     error
+		wantStatus     int
+		wantValidation []ValidationErrorItem
 	}{
 		{
 			name:       "ok",
@@ -204,7 +210,9 @@ func TestGetUserStatistics(t *testing.T) {
 		{
 			name:       "invalid user id",
 			wantStatus: http.StatusUnprocessableEntity,
-			wantBody:   "user_id must contain only letters, digits, dashes and underscores",
+			wantValidation: []ValidationErrorItem{
+				{Field: "user_id", Rule: "alphanumdash", Message: "user_id must contain only letters, digits, dashes and underscores"},
+			},
 		},
 		{
 			name:       "service error",
@@ -236,7 +244,7 @@ func TestGetUserStatistics(t *testing.T) {
 			router.ServeHTTP(rec, req)
 
 			assertStatus(t, rec.Code, tt.wantStatus)
-			assertBodyContains(t, rec.Body.String(), tt.wantBody)
+			assertValidationResponse(t, rec.Body.Bytes(), tt.wantValidation)
 		})
 	}
 }
@@ -289,15 +297,26 @@ func assertStatus(t *testing.T, got, want int) {
 	}
 }
 
-func assertBodyContains(t *testing.T, body, want string) {
+func assertValidationResponse(t *testing.T, body []byte, want []ValidationErrorItem) {
 	t.Helper()
 
-	if want == "" {
+	if len(want) == 0 {
 		return
 	}
 
-	if !strings.Contains(body, want) {
-		t.Fatalf("expected body to contain %q, got %s", want, body)
+	var response ValidationErrorResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		t.Fatalf("decode validation response: %v", err)
+	}
+
+	if len(response.Errors) != len(want) {
+		t.Fatalf("expected %d validation errors, got %d: %s", len(want), len(response.Errors), string(body))
+	}
+
+	for i, expected := range want {
+		if response.Errors[i] != expected {
+			t.Fatalf("unexpected validation error at %d: got %+v want %+v", i, response.Errors[i], expected)
+		}
 	}
 }
 

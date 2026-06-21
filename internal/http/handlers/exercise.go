@@ -28,7 +28,7 @@ func (h *Handler) CreateExercise(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.validate.Struct(req); err != nil {
-		writeError(w, http.StatusUnprocessableEntity, validationMessage(err))
+		writeValidationError(w, http.StatusUnprocessableEntity, validationErrors(err))
 		return
 	}
 
