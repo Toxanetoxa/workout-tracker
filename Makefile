@@ -10,7 +10,7 @@ DATABASE_URL ?= postgres://postgres:postgres@localhost:5432/workout_tracker?sslm
 
 .DEFAULT_GOAL := help
 
-.PHONY: help run build test test-cover fmt fmt-check lint check tidy swagger clean env install-hooks docker-up docker-up-db docker-down docker-logs migrate-up migrate-down migrate-force seed seed-docker
+.PHONY: help run build test test-cover test-integration fmt fmt-check lint check tidy swagger clean env install-hooks docker-up docker-up-db docker-down docker-logs migrate-up migrate-down migrate-force seed seed-docker
 
 help: ## Показать список доступных make-команд
 	@echo "Доступные команды:"
@@ -28,6 +28,9 @@ test: ## Запустить все тесты
 
 test-cover: ## Запустить тесты с отчетом покрытия
 	go test -cover ./...
+
+test-integration: ## Запустить интеграционные тесты репозитория на PostgreSQL
+	go test ./internal/repository -count=1
 
 fmt: ## Отформатировать Go-код и оптимизировать импорты через goimports
 	go run $(GOIMPORTS_PACKAGE) -w cmd internal docs

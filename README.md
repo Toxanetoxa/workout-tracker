@@ -23,11 +23,13 @@ make fmt
 make lint
 make check
 make test-cover
+make test-integration
 ```
 
 `make fmt` форматирует Go-код и оптимизирует импорты через `goimports`.
 `make lint` запускает `golangci-lint` в Docker.
 `make check` проверяет форматирование, запускает линтеры и тесты.
+`make test-integration` прогоняет интеграционные тесты репозитория на PostgreSQL. Для них нужен `TEST_DATABASE_URL` или `DATABASE_URL`.
 
 Установить git hook, который запускает `make check` перед `git push`:
 
