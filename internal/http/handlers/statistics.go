@@ -17,8 +17,8 @@ import (
 // @Router /users/{userID}/statistics [get]
 func (h *Handler) GetUserStatistics(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "userID")
-	if userID == "" {
-		writeError(w, http.StatusBadRequest, "user id is required")
+	if err := h.validate.Var(userID, "required,min=3,max=120,alphanumdash"); err != nil {
+		writeError(w, http.StatusUnprocessableEntity, validationMessageWithField("user_id", err))
 		return
 	}
 

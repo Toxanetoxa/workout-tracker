@@ -45,6 +45,12 @@ func TestCreateExercise(t *testing.T) {
 			wantBody:   "name is required",
 		},
 		{
+			name:       "multiple validation errors",
+			body:       `{"name":" "}`,
+			wantStatus: http.StatusUnprocessableEntity,
+			wantBody:   "name must not contain leading or trailing spaces",
+		},
+		{
 			name:       "unknown field",
 			body:       `{"name":"Bench Press","extra":true}`,
 			wantStatus: http.StatusBadRequest,
@@ -189,10 +195,16 @@ func TestGetUserStatistics(t *testing.T) {
 		name       string
 		serviceErr error
 		wantStatus int
+		wantBody   string
 	}{
 		{
 			name:       "ok",
 			wantStatus: http.StatusOK,
+		},
+		{
+			name:       "invalid user id",
+			wantStatus: http.StatusUnprocessableEntity,
+			wantBody:   "user_id must contain only letters, digits, dashes and underscores",
 		},
 		{
 			name:       "service error",
@@ -214,12 +226,17 @@ func TestGetUserStatistics(t *testing.T) {
 			router := chi.NewRouter()
 			router.Get("/users/{userID}/statistics", h.GetUserStatistics)
 
-			req := httptest.NewRequest(http.MethodGet, "/users/user-1/statistics", nil)
+			path := "/users/user-1/statistics"
+			if tt.name == "invalid user id" {
+				path = "/users/user.1/statistics"
+			}
+			req := httptest.NewRequest(http.MethodGet, path, nil)
 			rec := httptest.NewRecorder()
 
 			router.ServeHTTP(rec, req)
 
 			assertStatus(t, rec.Code, tt.wantStatus)
+			assertBodyContains(t, rec.Body.String(), tt.wantBody)
 		})
 	}
 }
