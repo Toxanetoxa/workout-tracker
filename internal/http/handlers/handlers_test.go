@@ -44,8 +44,14 @@ func TestCreateExercise(t *testing.T) {
 		{
 			name:       "duplicate exercise",
 			body:       `{"name":"Bench Press"}`,
-			serviceErr: &pgconn.PgError{Code: "23505"},
+			serviceErr: &pgconn.PgError{Code: "23505", ConstraintName: "exercises_name_key"},
 			wantStatus: http.StatusConflict,
+		},
+		{
+			name:       "different unique violation",
+			body:       `{"name":"Bench Press"}`,
+			serviceErr: &pgconn.PgError{Code: "23505", ConstraintName: "other_unique_key"},
+			wantStatus: http.StatusInternalServerError,
 		},
 		{
 			name:       "service error",
@@ -104,8 +110,14 @@ func TestCreateExecution(t *testing.T) {
 		{
 			name:       "exercise not found",
 			body:       `{"user_id":"user-1","exercise_id":99}`,
-			serviceErr: &pgconn.PgError{Code: "23503"},
+			serviceErr: &pgconn.PgError{Code: "23503", ConstraintName: "executions_exercise_id_fkey"},
 			wantStatus: http.StatusNotFound,
+		},
+		{
+			name:       "different foreign key violation",
+			body:       `{"user_id":"user-1","exercise_id":99}`,
+			serviceErr: &pgconn.PgError{Code: "23503", ConstraintName: "other_fk"},
+			wantStatus: http.StatusInternalServerError,
 		},
 		{
 			name:       "service error",

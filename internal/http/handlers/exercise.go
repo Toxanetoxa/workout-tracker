@@ -2,10 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
-
-	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type CreateExerciseRequest struct {
@@ -38,8 +35,7 @@ func (h *Handler) CreateExercise(w http.ResponseWriter, r *http.Request) {
 
 	exercise, err := h.exerciseService.Create(r.Context(), req.Name)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		if isUniqueExerciseNameError(err) {
 			writeError(w, http.StatusConflict, "exercise already exists")
 			return
 		}

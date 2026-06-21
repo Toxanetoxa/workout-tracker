@@ -2,11 +2,8 @@ package handlers
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"time"
-
-	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type CreateExecutionRequest struct {
@@ -46,8 +43,7 @@ func (h *Handler) CreateExecution(w http.ResponseWriter, r *http.Request) {
 
 	execution, err := h.executionService.Create(r.Context(), req.UserID, req.ExerciseID, performedAt)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23503" {
+		if isExerciseForeignKeyError(err) {
 			writeError(w, http.StatusNotFound, "exercise not found")
 			return
 		}
