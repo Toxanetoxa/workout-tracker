@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -50,6 +51,74 @@ func TestHTTPFlowWithPostgres(t *testing.T) {
 	}
 	if len(stats.Last7Days) != 7 {
 		t.Fatalf("unexpected last_7_days len: %d", len(stats.Last7Days))
+	}
+}
+
+func TestHTTPValidationErrorsWithPostgres(t *testing.T) {
+	pool := newHTTPIntegrationPool(t)
+	t.Cleanup(pool.Close)
+
+	apiHandlers := handlers.New(
+		validator.New(),
+		service.NewExerciseService(repository.NewExerciseRepository(pool)),
+		service.NewExecutionService(repository.NewExecutionRepository(pool)),
+		service.NewStatisticsService(repository.NewStatisticsRepository(pool)),
+	)
+	router := NewRouter(slog.New(slog.NewTextHandler(os.Stdout, nil)), apiHandlers)
+
+	tests := []struct {
+		name       string
+		method     string
+		target     string
+		body       string
+		wantStatus int
+		wantBody   string
+	}{
+		{
+			name:       "exercise unknown field",
+			method:     http.MethodPost,
+			target:     "/exercises",
+			body:       `{"name":"Bench Press","extra":true}`,
+			wantStatus: http.StatusBadRequest,
+			wantBody:   "invalid json body",
+		},
+		{
+			name:       "execution validation",
+			method:     http.MethodPost,
+			target:     "/executions",
+			body:       `{"user_id":"user 1","exercise_id":0}`,
+			wantStatus: http.StatusUnprocessableEntity,
+			wantBody:   "user_id must contain only letters, digits, dashes and underscores",
+		},
+		{
+			name:       "statistics invalid user id",
+			method:     http.MethodGet,
+			target:     "/users/user.1/statistics",
+			wantStatus: http.StatusUnprocessableEntity,
+			wantBody:   "user_id must contain only letters, digits, dashes and underscores",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var body io.Reader
+			if tt.body != "" {
+				body = bytes.NewBufferString(tt.body)
+			}
+
+			req := httptest.NewRequest(tt.method, tt.target, body)
+			req.Header.Set("Content-Type", "application/json")
+			rec := httptest.NewRecorder()
+
+			router.ServeHTTP(rec, req)
+
+			if rec.Code != tt.wantStatus {
+				t.Fatalf("expected %d, got %d: %s", tt.wantStatus, rec.Code, rec.Body.String())
+			}
+			if tt.wantBody != "" && !bytes.Contains(rec.Body.Bytes(), []byte(tt.wantBody)) {
+				t.Fatalf("expected body to contain %q, got %s", tt.wantBody, rec.Body.String())
+			}
+		})
 	}
 }
 

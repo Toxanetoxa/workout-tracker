@@ -3,3 +3,5 @@ set -eu
 
 echo "Running pre-push checks..."
 make check
+make test
+make test-integration
