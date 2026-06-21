@@ -1,0 +1,194 @@
+basePath: /
+definitions:
+  domain.DailyExecutionCount:
+    properties:
+      count:
+        type: integer
+      date:
+        type: string
+    type: object
+  domain.Execution:
+    properties:
+      created_at:
+        type: string
+      exercise_id:
+        type: integer
+      id:
+        type: integer
+      performed_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  domain.Exercise:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  domain.UserStatistics:
+    properties:
+      last_7_days:
+        items:
+          $ref: '#/definitions/domain.DailyExecutionCount'
+        type: array
+      today:
+        type: integer
+      total:
+        type: integer
+      user_id:
+        type: string
+    type: object
+  handlers.CreateExecutionRequest:
+    properties:
+      exercise_id:
+        type: integer
+      performed_at:
+        type: string
+      user_id:
+        maxLength: 120
+        minLength: 1
+        type: string
+    required:
+    - exercise_id
+    - user_id
+    type: object
+  handlers.CreateExerciseRequest:
+    properties:
+      name:
+        maxLength: 120
+        minLength: 2
+        type: string
+    required:
+    - name
+    type: object
+  handlers.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+host: localhost:3000
+info:
+  contact: {}
+  description: API для учета выполненных упражнений и получения статистики по пользователю.
+  title: Workout Tracker API
+  version: "1.0"
+paths:
+  /executions:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Данные выполнения
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateExecutionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.Execution'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Зафиксировать выполнение упражнения
+      tags:
+      - executions
+  /exercises:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Данные упражнения
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateExerciseRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.Exercise'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "422":
+          description: Unprocessable Entity
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Создать упражнение
+      tags:
+      - exercises
+  /health:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Проверка состояния API
+      tags:
+      - service
+  /users/{userID}/statistics:
+    get:
+      parameters:
+      - description: ID пользователя
+        in: path
+        name: userID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.UserStatistics'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Получить статистику пользователя
+      tags:
+      - statistics
+swagger: "2.0"
