@@ -19,6 +19,6 @@ func writeError(w http.ResponseWriter, status int, message string) {
 	writeJSON(w, status, ErrorResponse{Error: message})
 }
 
-func writeValidationError(w http.ResponseWriter, status int, errors []ValidationErrorItem) {
-	writeJSON(w, status, ValidationErrorResponse{Errors: errors})
+func writeValidationError(w http.ResponseWriter, errors []ValidationErrorItem) {
+	writeJSON(w, http.StatusUnprocessableEntity, ValidationErrorResponse{Errors: errors})
 }

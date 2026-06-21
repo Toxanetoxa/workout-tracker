@@ -1,7 +1,7 @@
 APP_PACKAGE := ./cmd/api
 APP_BINARY := bin/api
 GOLANGCI_LINT_VERSION := v2.12.2
-GOIMPORTS_PACKAGE := golang.org/x/tools/cmd/goimports@latest
+GOIMPORTS_BIN ?= goimports
 ifneq (,$(wildcard .env))
 include .env
 export
@@ -33,10 +33,10 @@ test-integration: ## Запустить интеграционные тесты 
 	go test ./internal/repository -count=1
 
 fmt: ## Отформатировать Go-код и оптимизировать импорты через goimports
-	go run $(GOIMPORTS_PACKAGE) -w cmd internal docs
+	$(GOIMPORTS_BIN) -w cmd internal docs
 
 fmt-check: ## Проверить форматирование и импорты без изменения файлов
-	@test -z "$$(go run $(GOIMPORTS_PACKAGE) -l cmd internal docs)"
+	@test -z "$$($(GOIMPORTS_BIN) -l cmd internal docs)"
 
 lint: ## Запустить Go-линтеры через golangci-lint в Docker
 	docker run --rm -v "$$(pwd):/app" -w /app golangci/golangci-lint:$(GOLANGCI_LINT_VERSION) golangci-lint run

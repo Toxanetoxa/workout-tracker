@@ -18,7 +18,7 @@ import (
 func (h *Handler) GetUserStatistics(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "userID")
 	if err := h.validate.Var(userID, "required,min=3,max=120,alphanumdash"); err != nil {
-		writeValidationError(w, http.StatusUnprocessableEntity, validationErrorsWithField("user_id", err))
+		writeValidationError(w, validationErrorsWithField("user_id", err))
 		return
 	}
 

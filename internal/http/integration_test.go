@@ -11,9 +11,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	"log/slog"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"log/slog"
 
 	"github.com/Toxanetoxa/workout-tracker/internal/database"
 	"github.com/Toxanetoxa/workout-tracker/internal/domain"
@@ -159,7 +160,7 @@ func resetHTTPSchema(ctx context.Context, pool *pgxpool.Pool) error {
 
 func applyHTTPMigration(ctx context.Context, pool *pgxpool.Pool) error {
 	migrationPath := filepath.Join("..", "..", "migrations", "000001_init.up.sql")
-	sqlBytes, err := os.ReadFile(migrationPath)
+	sqlBytes, err := os.ReadFile(migrationPath) // #nosec G304 -- test-only migration file path is fixed in repo
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,10 @@
 package handlers
 
-import "github.com/jackc/pgx/v5/pgconn"
+import (
+	"errors"
+
+	"github.com/jackc/pgx/v5/pgconn"
+)
 
 const (
 	pgUniqueViolation     = "23505"
@@ -30,13 +34,10 @@ func asPgError(err error, target **pgconn.PgError) bool {
 		return false
 	}
 
-	if e, ok := err.(*pgconn.PgError); ok {
-		*target = e
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		*target = pgErr
 		return true
-	}
-
-	if unwrapped, ok := err.(interface{ Unwrap() error }); ok {
-		return asPgError(unwrapped.Unwrap(), target)
 	}
 
 	return false

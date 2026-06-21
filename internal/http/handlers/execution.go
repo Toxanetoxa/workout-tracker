@@ -31,7 +31,7 @@ func (h *Handler) CreateExecution(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.validate.Struct(req); err != nil {
-		writeValidationError(w, http.StatusUnprocessableEntity, validationErrors(err))
+		writeValidationError(w, validationErrors(err))
 		return
 	}
 
@@ -39,7 +39,7 @@ func (h *Handler) CreateExecution(w http.ResponseWriter, r *http.Request) {
 	if req.PerformedAt != nil {
 		performedAt = req.PerformedAt.UTC()
 		if performedAt.After(time.Now().UTC()) {
-			writeValidationError(w, http.StatusUnprocessableEntity, []ValidationErrorItem{
+			writeValidationError(w, []ValidationErrorItem{
 				{Field: "performed_at", Rule: "future", Message: "performed_at must not be in the future"},
 			})
 			return

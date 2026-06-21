@@ -60,7 +60,7 @@ func resetSchema(ctx context.Context, pool *pgxpool.Pool) error {
 
 func applyMigration(ctx context.Context, pool *pgxpool.Pool) error {
 	migrationPath := filepath.Join("..", "..", "migrations", "000001_init.up.sql")
-	sqlBytes, err := os.ReadFile(migrationPath)
+	sqlBytes, err := os.ReadFile(migrationPath) // #nosec G304 -- test-only migration file path is fixed in repo
 	if err != nil {
 		return err
 	}
