@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -25,6 +26,7 @@ func TestCreateExercise(t *testing.T) {
 		body       string
 		serviceErr error
 		wantStatus int
+		wantBody   string
 	}{
 		{
 			name:       "created",
@@ -40,6 +42,7 @@ func TestCreateExercise(t *testing.T) {
 			name:       "validation failed",
 			body:       `{"name":""}`,
 			wantStatus: http.StatusUnprocessableEntity,
+			wantBody:   "name is required",
 		},
 		{
 			name:       "unknown field",
@@ -50,6 +53,7 @@ func TestCreateExercise(t *testing.T) {
 			name:       "trimmed validation failed",
 			body:       `{"name":" Bench Press "}`,
 			wantStatus: http.StatusUnprocessableEntity,
+			wantBody:   "name must not contain leading or trailing spaces",
 		},
 		{
 			name:       "duplicate exercise",
@@ -87,6 +91,7 @@ func TestCreateExercise(t *testing.T) {
 			h.CreateExercise(rec, req)
 
 			assertStatus(t, rec.Code, tt.wantStatus)
+			assertBodyContains(t, rec.Body.String(), tt.wantBody)
 		})
 	}
 }
@@ -101,6 +106,7 @@ func TestCreateExecution(t *testing.T) {
 		body       string
 		serviceErr error
 		wantStatus int
+		wantBody   string
 	}{
 		{
 			name:       "created",
@@ -116,16 +122,19 @@ func TestCreateExecution(t *testing.T) {
 			name:       "validation failed",
 			body:       `{"user_id":"","exercise_id":0}`,
 			wantStatus: http.StatusUnprocessableEntity,
+			wantBody:   "user_id is required",
 		},
 		{
 			name:       "invalid user id format",
 			body:       `{"user_id":"user 1","exercise_id":1}`,
 			wantStatus: http.StatusUnprocessableEntity,
+			wantBody:   "user_id must contain only letters, digits, dashes and underscores",
 		},
 		{
 			name:       "performed at in the future",
 			body:       `{"user_id":"user-1","exercise_id":1,"performed_at":"2099-01-01T00:00:00Z"}`,
 			wantStatus: http.StatusUnprocessableEntity,
+			wantBody:   "performed_at must not be in the future",
 		},
 		{
 			name:       "unknown field",
@@ -168,6 +177,7 @@ func TestCreateExecution(t *testing.T) {
 			h.CreateExecution(rec, req)
 
 			assertStatus(t, rec.Code, tt.wantStatus)
+			assertBodyContains(t, rec.Body.String(), tt.wantBody)
 		})
 	}
 }
@@ -259,6 +269,18 @@ func assertStatus(t *testing.T, got, want int) {
 
 	if got != want {
 		t.Fatalf("expected status %d, got %d", want, got)
+	}
+}
+
+func assertBodyContains(t *testing.T, body, want string) {
+	t.Helper()
+
+	if want == "" {
+		return
+	}
+
+	if !strings.Contains(body, want) {
+		t.Fatalf("expected body to contain %q, got %s", want, body)
 	}
 }
 

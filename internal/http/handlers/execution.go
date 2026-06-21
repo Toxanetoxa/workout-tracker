@@ -31,7 +31,7 @@ func (h *Handler) CreateExecution(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.validate.Struct(req); err != nil {
-		writeError(w, http.StatusUnprocessableEntity, "validation failed")
+		writeError(w, http.StatusUnprocessableEntity, validationMessage(err))
 		return
 	}
 
