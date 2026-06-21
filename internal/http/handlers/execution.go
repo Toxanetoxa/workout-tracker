@@ -1,13 +1,12 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 )
 
 type CreateExecutionRequest struct {
-	UserID      string     `json:"user_id" validate:"required,min=1,max=120"`
+	UserID      string     `json:"user_id" validate:"required,min=3,max=120,alphanumdash"`
 	ExerciseID  int64      `json:"exercise_id" validate:"required,gt=0"`
 	PerformedAt *time.Time `json:"performed_at"`
 }
@@ -26,7 +25,7 @@ type CreateExecutionRequest struct {
 // @Router /executions [post]
 func (h *Handler) CreateExecution(w http.ResponseWriter, r *http.Request) {
 	var req CreateExecutionRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := decodeJSONBody(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid json body")
 		return
 	}
@@ -39,6 +38,10 @@ func (h *Handler) CreateExecution(w http.ResponseWriter, r *http.Request) {
 	var performedAt time.Time
 	if req.PerformedAt != nil {
 		performedAt = req.PerformedAt.UTC()
+		if performedAt.After(time.Now().UTC()) {
+			writeError(w, http.StatusUnprocessableEntity, "performed_at must not be in the future")
+			return
+		}
 	}
 
 	execution, err := h.executionService.Create(r.Context(), req.UserID, req.ExerciseID, performedAt)

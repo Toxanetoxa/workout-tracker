@@ -29,6 +29,8 @@ type Handler struct {
 }
 
 func New(validate *validator.Validate, exerciseService ExerciseService, executionService ExecutionService, statisticsService StatisticsService) *Handler {
+	registerValidationRules(validate)
+
 	return &Handler{
 		validate:          validate,
 		exerciseService:   exerciseService,

@@ -1,12 +1,11 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 )
 
 type CreateExerciseRequest struct {
-	Name string `json:"name" validate:"required,min=2,max=120"`
+	Name string `json:"name" validate:"required,trimmed,min=2,max=120"`
 }
 
 // CreateExercise godoc
@@ -23,7 +22,7 @@ type CreateExerciseRequest struct {
 // @Router /exercises [post]
 func (h *Handler) CreateExercise(w http.ResponseWriter, r *http.Request) {
 	var req CreateExerciseRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := decodeJSONBody(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid json body")
 		return
 	}

@@ -42,6 +42,16 @@ func TestCreateExercise(t *testing.T) {
 			wantStatus: http.StatusUnprocessableEntity,
 		},
 		{
+			name:       "unknown field",
+			body:       `{"name":"Bench Press","extra":true}`,
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "trimmed validation failed",
+			body:       `{"name":" Bench Press "}`,
+			wantStatus: http.StatusUnprocessableEntity,
+		},
+		{
 			name:       "duplicate exercise",
 			body:       `{"name":"Bench Press"}`,
 			serviceErr: &pgconn.PgError{Code: "23505", ConstraintName: "exercises_name_key"},
@@ -106,6 +116,21 @@ func TestCreateExecution(t *testing.T) {
 			name:       "validation failed",
 			body:       `{"user_id":"","exercise_id":0}`,
 			wantStatus: http.StatusUnprocessableEntity,
+		},
+		{
+			name:       "invalid user id format",
+			body:       `{"user_id":"user 1","exercise_id":1}`,
+			wantStatus: http.StatusUnprocessableEntity,
+		},
+		{
+			name:       "performed at in the future",
+			body:       `{"user_id":"user-1","exercise_id":1,"performed_at":"2099-01-01T00:00:00Z"}`,
+			wantStatus: http.StatusUnprocessableEntity,
+		},
+		{
+			name:       "unknown field",
+			body:       `{"user_id":"user-1","exercise_id":1,"extra":true}`,
+			wantStatus: http.StatusBadRequest,
 		},
 		{
 			name:       "exercise not found",
